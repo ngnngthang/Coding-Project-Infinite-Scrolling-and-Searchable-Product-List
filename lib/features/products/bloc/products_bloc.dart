@@ -25,6 +25,7 @@ EventTransformer<E> debounceTransformer<E>(Duration duration) {
 
 class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
   ProductsBloc() : super(ProductsState(products: Product.dummy())) {
+    on<ProductsInit>(_onInit);
     on<ProductsFetched>(_onProductsFetch);
     on<ProductsLoadedMore>(
       _onProductsLoadMore,
@@ -35,9 +36,18 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
       transformer: debounceTransformer(debounceDuration),
     );
     on<ProductsReloaded>(_onProductsReload);
+    on<FavorireProductsFetched>(_onFavorireProductsFetch);
+    on<ProductFavoriteAdded>(_onProductFavoriteAdd);
+    on<ProductFavoriteRemoved>(_onProductFavoriteRemove);
   }
 
   final ProductsRepository _repo = ProductRepositoryImpl();
+  final LocalRepository _localRepo = LocalRepositoryImpl();
+
+  Future<void> _onInit(ProductsInit event, Emitter<ProductsState> emit) async {
+    add(const ProductsFetched());
+    add(const FavorireProductsFetched());
+  }
 
   Future<void> _onProductsFetch(
     ProductsFetched event,
@@ -68,6 +78,8 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     ProductsSearched event,
     Emitter<ProductsState> emit,
   ) async {
+    emit(state.copyWith(query: event.query));
+
     try {
       final response = await _repo.getProducts(
         page: 0,
@@ -139,6 +151,87 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     } catch (e) {
       emit(state.copyWith(status: ProductsStatus.error));
       rethrow;
+    }
+  }
+
+  Future<void> _onFavorireProductsFetch(
+    FavorireProductsFetched event,
+    Emitter<ProductsState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(favoriteListStatus: ProductsStatus.loading));
+
+      final favorites = await _localRepo.getFavoriteProducts();
+      print(favorites);
+
+      emit(
+        state.copyWith(
+          favoriteListStatus: ProductsStatus.success,
+          favoriteProducts: favorites,
+        ),
+      );
+    } catch (error) {
+      emit(state.copyWith(actionStatus: ProductActionStatus.error));
+    }
+  }
+
+  Future<void> _onProductFavoriteAdd(
+    ProductFavoriteAdded event,
+    Emitter<ProductsState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(actionStatus: ProductActionStatus.adding));
+
+      final updatedFavorites = List<Product>.from(state.favoriteProducts);
+
+      if (!updatedFavorites.contains(event.product)) {
+        updatedFavorites.add(event.product);
+        await _localRepo.saveFavoriteProduct(product: event.product);
+      }
+
+      emit(
+        state.copyWith(
+          actionStatus: ProductActionStatus.added,
+          favoriteProducts: updatedFavorites,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          actionStatus: ProductActionStatus.error,
+          error: 'Failed to add favorite product',
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _onProductFavoriteRemove(
+    ProductFavoriteRemoved event,
+    Emitter<ProductsState> emit,
+  ) async {
+    try {
+      emit(state.copyWith(actionStatus: ProductActionStatus.removing));
+
+      final updatedFavorites = state.favoriteProducts
+          .where((product) => product.id != event.productId)
+          .toList();
+
+      await _localRepo.removeFavoriteProduct(productId: event.productId);
+
+      emit(
+        state.copyWith(
+          actionStatus: ProductActionStatus.removed,
+          favoriteProducts: updatedFavorites,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          actionStatus: ProductActionStatus.error,
+          error: 'Failed to remove favorite product',
+        ),
+      );
     }
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:infinite_list_and_search/components/inputs/text_input.dart';
 import 'package:infinite_list_and_search/features/products/bloc/products_bloc.dart';
 import 'package:infinite_list_and_search/features/products/components/product_list.dart';
+import 'package:infinite_list_and_search/features/products/components/product_search_input.dart';
 
 class ProductsScreen extends StatelessWidget {
   const ProductsScreen({super.key});
@@ -10,7 +10,7 @@ class ProductsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ProductsBloc()..add(ProductsFetched()),
+      create: (context) => ProductsBloc()..add(ProductsInit()),
       child: const ProductView(),
     );
   }
@@ -36,8 +36,37 @@ class ProductView extends StatelessWidget {
           FocusManager.instance.primaryFocus?.unfocus();
         },
         child: BlocListener<ProductsBloc, ProductsState>(
-          listenWhen: (previous, current) => previous.status != current.status,
-          listener: (context, state) {},
+          listenWhen: (previous, current) =>
+              previous.status != current.status ||
+              previous.actionStatus != current.actionStatus,
+          listener: (context, state) {
+            if (state.actionStatus.isError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error ?? 'Something went wrong'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+
+            if (state.actionStatus.isAdded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Product added to favorites'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+
+            if (state.actionStatus.isRemoved) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Product removed from favorites'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
@@ -65,11 +94,21 @@ class ProductView extends StatelessWidget {
                             state.status.isLoading || state.status.isInit,
                         isLoadingMore: state.status.isLoadingMore,
                         items: state.products,
+                        favoriteItems: state.favoriteProducts,
                         onLoadMore: () {
                           bloc.add(ProductsLoadedMore());
                         },
                         onRefresh: () {
                           bloc.add(ProductsReloaded());
+                        },
+                        canLoadMore: !state.hasReachedMax,
+                        onAddToFavorite: (product) {
+                          bloc.add(ProductFavoriteAdded(product: product));
+                        },
+                        onRemoveFromFavorite: (productId) {
+                          bloc.add(
+                            ProductFavoriteRemoved(productId: productId),
+                          );
                         },
                       );
                     },
@@ -80,62 +119,6 @@ class ProductView extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class ProductSearchInput extends StatefulWidget {
-  const ProductSearchInput({super.key, this.onChanged, this.onClearText});
-
-  final Function(String)? onChanged;
-  final VoidCallback? onClearText;
-
-  @override
-  State<ProductSearchInput> createState() => _ProductSearchInputState();
-}
-
-class _ProductSearchInputState extends State<ProductSearchInput> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onChanged(String value) {
-    widget.onChanged?.call(value);
-    setState(() {});
-  }
-
-  void _clearText() {
-    _controller.clear();
-    widget.onClearText?.call();
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextInput(
-      controller: _controller,
-      hintText: 'Search products...',
-      onChanged: _onChanged,
-      prefix: Icon(Icons.search, size: 20, color: Colors.black87),
-      suffix: _controller.text.isNotEmpty
-          ? IconButton(
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              alignment: Alignment.center,
-              onPressed: _clearText,
-              icon: Icon(Icons.clear, size: 20, color: Colors.black87),
-            )
-          : null,
     );
   }
 }

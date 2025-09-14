@@ -3,10 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:infinite_list_and_search/models/models.dart';
 
 class ProductItem extends StatelessWidget {
-  const ProductItem({super.key, required this.product, this.onTap});
+  const ProductItem({
+    super.key,
+    required this.product,
+    this.onTap,
+    this.isFavorite = false,
+    this.onAddToFavorite,
+    this.onRemoveFromFavorite,
+  });
 
   final Product product;
   final VoidCallback? onTap;
+  final bool isFavorite;
+  final VoidCallback? onAddToFavorite;
+  final VoidCallback? onRemoveFromFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +48,8 @@ class ProductItem extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       product.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -49,6 +61,23 @@ class ProductItem extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                if (isFavorite) {
+                  onRemoveFromFavorite?.call();
+                } else {
+                  onAddToFavorite?.call();
+                }
+              },
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                isFavorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                size: 24,
+                color: isFavorite ? Colors.red : Colors.grey,
               ),
             ),
           ],
