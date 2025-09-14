@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSApplicationSupportDirectory</key>
+	<string>YES</string>
 </dict>
 </plist>
