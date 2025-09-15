@@ -12,7 +12,7 @@
   4. Implement favorite feature for products.
     1. Favorite data should be stored in local DB or Google Firebase.
 
-### Pre-installation requirements
+## Pre-installation requirements
 Make sure your device is installed with Flutter 
 
 Connect to Simulator/Device:
@@ -22,7 +22,7 @@ If you don’t setup the simulator/device, please setup that like the link below
 - Set up Android Device: https://docs.flutter.dev/get-started/install/macos#set-up-your-android-device
 - Set up Android emulator: https://docs.flutter.dev/get-started/install/macos#set-up-the-android-emulator
 
-#### Installation
+## Installation
 Clean old build
 ```bash
   flutter clean
@@ -47,4 +47,23 @@ Generate models
 Run source code
 ```bash
   flutter run
+```
+
+## Project Structure 
+```bash
+/lib                                              (Main app)
+/lib/app                                          (App level code)
+/lib/app/blocs                                    (All common blocs. E.g: Connectivity)
+
+/lib/data                                         (All data sources. E.g: Remote)
+/lib/repository                                   (All repositories. E.g: Products)
+/lib/models                                       (All models. E.g: Product)
+
+/lib/features                                     (All features / screens)
+/lib/features/[feature name]                      (Feature folder) (e.g: products)
+/lib/features/[feature name]/bloc                 (Bloc of the feature)
+/lib/features/[feature name]/view                 (UI folder of the feature)
+/lib/features/[feature name]/components           (Custom widgets/components of the feature)
+
+/lib/utils                                        (App utilities)
 ```
